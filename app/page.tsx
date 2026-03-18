@@ -1,65 +1,87 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { useState } from 'react'
+import { supabase } from '@/lib/supabaseClient'
+
+export default function LoginPage() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [mode, setMode] = useState<'login' | 'signup'>('login')
+
+  const handleAuth = async () => {
+    if (!email || !password) return
+    setLoading(true)
+    if (mode === 'login') {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) alert(error.message)
+      else window.location.href = '/projects'
+    } else {
+      const { error } = await supabase.auth.signUp({ email, password })
+      if (error) alert(error.message)
+      else { alert('Account created! You can now sign in.'); setMode('login') }
+    }
+    setLoading(false)
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex justify-center pt-12">
+      <div className="bg-white border border-[#d7d7d7] rounded shadow-sm p-8 w-80">
+        {/* Logo */}
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#628db6] text-white text-xl font-bold mb-3">R</div>
+          <h1 className="text-xl font-bold text-[#3e3e3e]">Redmine Mini</h1>
+          <p className="text-xs text-gray-400 mt-1">Project Management</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+
+        <h2 className="text-sm font-semibold text-gray-600 mb-4 border-b border-gray-200 pb-2">
+          {mode === 'login' ? 'Sign in' : 'Create account'}
+        </h2>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Login</label>
+            <input
+              className="w-full border border-[#d7d7d7] rounded px-3 py-2 text-sm outline-none focus:border-[#628db6] focus:ring-1 focus:ring-[#628db6]"
+              placeholder="Email address"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAuth()}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Password</label>
+            <input
+              type="password"
+              className="w-full border border-[#d7d7d7] rounded px-3 py-2 text-sm outline-none focus:border-[#628db6] focus:ring-1 focus:ring-[#628db6]"
+              placeholder="Password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAuth()}
+            />
+          </div>
+          <button
+            onClick={handleAuth}
+            disabled={loading}
+            className="w-full bg-[#628db6] hover:bg-[#4e7a9e] text-white py-2 rounded text-sm font-medium disabled:opacity-50 transition-colors"
           >
-            Documentation
-          </a>
+            {loading ? 'Please wait...' : mode === 'login' ? 'Login' : 'Sign up'}
+          </button>
         </div>
-      </main>
+
+        <p className="text-center text-xs text-gray-400 mt-5">
+          {mode === 'login' ? (
+            <>No account?{' '}
+              <button onClick={() => setMode('signup')} className="text-[#169] hover:underline cursor-pointer">Register</button>
+            </>
+          ) : (
+            <>Already registered?{' '}
+              <button onClick={() => setMode('login')} className="text-[#169] hover:underline cursor-pointer">Sign in</button>
+            </>
+          )}
+        </p>
+      </div>
     </div>
-  );
+  )
 }
