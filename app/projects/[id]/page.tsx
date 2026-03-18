@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
@@ -29,6 +29,25 @@ export default function ProjectDetail() {
   const [priority, setPriority] = useState('normal')
   const [assignee, setAssignee] = useState('')
   const [filterStatus, setFilterStatus] = useState('open')
+
+  const descRef = useRef<HTMLTextAreaElement>(null)
+  const imgInputRef = useRef<HTMLInputElement>(null)
+
+  const uploadImage = async (file: File) => {
+    const ta = descRef.current
+    const start = ta?.selectionStart ?? 0
+    const end = ta?.selectionEnd ?? 0
+    const ext = file.name.split('.').pop() || 'png'
+    const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const { error } = await supabase.storage.from('issue-images').upload(path, file)
+    if (error) { alert('Upload thất bại: ' + error.message); return }
+    const { data } = supabase.storage.from('issue-images').getPublicUrl(path)
+    const markdown = `![image](${data.publicUrl})`
+    setDescription(prev => prev.slice(0, start) + markdown + prev.slice(end))
+    setTimeout(() => {
+      if (ta) { ta.selectionStart = ta.selectionEnd = start + markdown.length; ta.focus() }
+    }, 50)
+  }
 
   const fetchData = async () => {
     const [{ data: proj }, { data: iss }] = await Promise.all([
@@ -97,12 +116,46 @@ export default function ProjectDetail() {
             </div>
             <div>
               <label className="block text-xs text-gray-600 mb-1">Description</label>
-              <textarea
-                className="w-full border border-[#d7d7d7] rounded px-3 py-1.5 text-sm outline-none focus:border-[#628db6] h-24 resize-none"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                placeholder="Describe the issue..."
-              />
+              <div className="border border-[#d7d7d7] rounded overflow-hidden focus-within:border-[#628db6]">
+                <div className="bg-[#f5f5f5] border-b border-[#d7d7d7] px-2 py-1 flex gap-1 items-center">
+                  <button
+                    type="button"
+                    onClick={() => imgInputRef.current?.click()}
+                    className="text-xs text-gray-500 hover:text-[#628db6] px-2 py-0.5 rounded hover:bg-gray-200 transition-colors"
+                    title="Upload ảnh"
+                  >
+                    🖼 Ảnh
+                  </button>
+                  <input
+                    ref={imgInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async e => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      await uploadImage(file)
+                      e.target.value = ''
+                    }}
+                  />
+                  <span className="text-xs text-gray-300 ml-1">hoặc paste ảnh (Ctrl+V)</span>
+                </div>
+                <textarea
+                  ref={descRef}
+                  className="w-full px-3 py-1.5 text-sm outline-none h-24 resize-none"
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  onPaste={async e => {
+                    const imgItem = Array.from(e.clipboardData.items).find(item => item.type.startsWith('image/'))
+                    if (imgItem) {
+                      e.preventDefault()
+                      const file = imgItem.getAsFile()
+                      if (file) await uploadImage(file)
+                    }
+                  }}
+                  placeholder="Describe the issue..."
+                />
+              </div>
             </div>
             <div className="flex gap-4">
               <div>
