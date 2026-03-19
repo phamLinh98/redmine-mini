@@ -26,6 +26,12 @@ export default function ProjectsPage() {
     fetchProjects()
   }
 
+  const deleteProject = async (id: string, projectName: string) => {
+    if (!confirm(`Xoá project "${projectName}"? Hành động này không thể hoàn tác.`)) return
+    await supabase.from('projects').delete().eq('id', id)
+    fetchProjects()
+  }
+
   return (
     <div>
       {/* Page title */}
@@ -86,12 +92,13 @@ export default function ProjectsPage() {
               <th className="text-left px-4 py-2.5 font-semibold text-gray-600">Project</th>
               <th className="text-left px-4 py-2.5 font-semibold text-gray-600">Description</th>
               <th className="text-left px-4 py-2.5 font-semibold text-gray-600 w-32">Created</th>
+              <th className="text-left px-4 py-2.5 font-semibold text-gray-600 w-20">Actions</th>
             </tr>
           </thead>
           <tbody>
             {projects.length === 0 ? (
               <tr>
-                <td colSpan={3} className="px-4 py-10 text-center text-gray-400">
+                <td colSpan={4} className="px-4 py-10 text-center text-gray-400">
                   No projects yet.{' '}
                   <button onClick={() => setShowForm(true)} className="text-[#169] hover:underline">Create the first one</button>.
                 </td>
@@ -107,6 +114,14 @@ export default function ProjectsPage() {
                   <td className="px-4 py-3 text-gray-500">{p.description || <span className="text-gray-300">—</span>}</td>
                   <td className="px-4 py-3 text-gray-400 text-xs">
                     {p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => deleteProject(p.id, p.name)}
+                      className="text-xs text-red-400 hover:text-red-600 hover:underline transition-colors"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))

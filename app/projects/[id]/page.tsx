@@ -28,7 +28,9 @@ export default function ProjectDetail() {
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState('normal')
   const [assignee, setAssignee] = useState('')
+  const [deadline, setDeadline] = useState('')
   const [filterStatus, setFilterStatus] = useState('open')
+  const [users, setUsers] = useState<{ id: string; email: string; name?: string }[]>([])
 
   const descRef = useRef<HTMLTextAreaElement>(null)
   const imgInputRef = useRef<HTMLInputElement>(null)
@@ -60,14 +62,27 @@ export default function ProjectDetail() {
 
   useEffect(() => { fetchData() }, [id])
 
+  useEffect(() => {
+    supabase.from('profiles').select('id, email, name').then(({ data }) => {
+      if (data) setUsers(data)
+    })
+  }, [])
+
   const createIssue = async () => {
     if (!title.trim()) return
-    await supabase.from('issues').insert([{ title, description, priority, assignee, project_id: id, status: 'open' }])
+    await supabase.from('issues').insert([{ title, description, priority, assignee, deadline: deadline || null, project_id: id, status: 'open' }])
     setTitle('')
     setDescription('')
     setPriority('normal')
     setAssignee('')
+    setDeadline('')
     setShowForm(false)
+    fetchData()
+  }
+
+  const deleteIssue = async (issueId: string, issueTitle: string) => {
+    if (!confirm(`Xoá issue "${issueTitle}"? Hành động này không thể hoàn tác.`)) return
+    await supabase.from('issues').delete().eq('id', issueId)
     fetchData()
   }
 
@@ -172,14 +187,27 @@ export default function ProjectDetail() {
                 </select>
               </div>
               <div className="flex-1">
-                <label className="block text-xs text-gray-600 mb-1">Assignee</label>
-                <input
-                  className="w-full border border-[#d7d7d7] rounded px-3 py-1.5 text-sm outline-none focus:border-[#628db6]"
+                <label className="block text-xs text-gray-600 mb-1">Assign</label>
+                <select
+                  className="w-full border border-[#d7d7d7] rounded px-3 py-1.5 text-sm outline-none focus:border-[#628db6] bg-white"
                   value={assignee}
                   onChange={e => setAssignee(e.target.value)}
-                  placeholder="Assign to..."
-                />
+                >
+                  <option value="">— Unassigned —</option>
+                  {users.map(u => (
+                    <option key={u.id} value={u.id}>{u.name || u.email}</option>
+                  ))}
+                </select>
               </div>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Deadline</label>
+              <input
+                type="date"
+                className="border border-[#d7d7d7] rounded px-3 py-1.5 text-sm outline-none focus:border-[#628db6] bg-white"
+                value={deadline}
+                onChange={e => setDeadline(e.target.value)}
+              />
             </div>
             <div className="flex gap-2 pt-1">
               <button onClick={createIssue} className="bg-[#628db6] hover:bg-[#4e7a9e] text-white text-sm px-5 py-1.5 rounded transition-colors">
@@ -221,14 +249,14 @@ export default function ProjectDetail() {
               <th className="text-left px-3 py-2.5 font-semibold text-gray-600">Subject</th>
               <th className="text-left px-3 py-2.5 font-semibold text-gray-600 w-28">Status</th>
               <th className="text-left px-3 py-2.5 font-semibold text-gray-600 w-24">Priority</th>
-              <th className="text-left px-3 py-2.5 font-semibold text-gray-600 w-28">Assignee</th>
-              <th className="text-left px-3 py-2.5 font-semibold text-gray-600 w-28">Updated</th>
+              <th className="text-left px-3 py-2.5 font-semibold text-gray-600 w-36">Assignee</th>
+              <th className="text-left px-3 py-2.5 font-semibold text-gray-600 w-20">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-gray-400">
+                <td colSpan={6} className="px-4 py-10 text-center text-gray-400">
                   No issues found.{' '}
                   <button onClick={() => setShowForm(true)} className="text-[#169] hover:underline">Create one</button>.
                 </td>
@@ -254,10 +282,17 @@ export default function ProjectDetail() {
                     {issue.priority || 'normal'}
                   </td>
                   <td className="px-3 py-2.5 text-xs text-gray-500">
-                    {issue.assignee || <span className="text-gray-300">—</span>}
+                    {issue.assignee
+                      ? (users.find(u => u.id === issue.assignee)?.name || users.find(u => u.id === issue.assignee)?.email || <span className="text-gray-300">—</span>)
+                      : <span className="text-gray-300">—</span>}
                   </td>
-                  <td className="px-3 py-2.5 text-xs text-gray-400">
-                    {issue.updated_at ? new Date(issue.updated_at).toLocaleDateString() : '—'}
+                  <td className="px-3 py-2.5">
+                    <button
+                      onClick={e => { e.preventDefault(); deleteIssue(issue.id, issue.title) }}
+                      className="text-xs text-red-400 hover:text-red-600 hover:underline transition-colors"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))

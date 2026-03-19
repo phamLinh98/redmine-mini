@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 const STATUS_OPTIONS = ['open', 'in-progress', 'resolved', 'closed'] as const
@@ -23,6 +23,7 @@ const PRIORITY_COLOR: Record<string, string> = {
 
 export default function IssueDetail() {
   const { id } = useParams()
+  const router = useRouter()
   const [issue, setIssue] = useState<any>(null)
   const [comments, setComments] = useState<any[]>([])
   const [users, setUsers] = useState<{ id: string; email: string; name?: string }[]>([])
@@ -142,6 +143,16 @@ export default function IssueDetail() {
     fetchData()
   }
 
+  const deleteIssue = async () => {
+    if (!confirm(`Xoá issue "${issue.title}"? Hành động này không thể hoàn tác.`)) return
+    await supabase.from('issues').delete().eq('id', id)
+    if (issue.projects?.id) {
+      router.push(`/projects/${issue.projects.id}`)
+    } else {
+      router.push('/projects')
+    }
+  }
+
   if (!issue) return (
     <div className="flex items-center justify-center py-20 text-gray-400">Loading...</div>
   )
@@ -183,6 +194,14 @@ export default function IssueDetail() {
                     className="text-xs text-[#169] hover:underline ml-2"
                   >
                     Edit
+                  </button>
+                )}
+                {!editingIssue && (
+                  <button
+                    onClick={deleteIssue}
+                    className="text-xs text-red-400 hover:underline"
+                  >
+                    Delete
                   </button>
                 )}
               </div>
@@ -255,7 +274,7 @@ export default function IssueDetail() {
                       </select>
                     </div>
                     <div className="flex-1">
-                      <label className="block text-xs text-gray-500 mb-1">Assignee</label>
+                      <label className="block text-xs text-gray-500 mb-1">Assign</label>
                       <select
                         className="w-full border border-[#d7d7d7] rounded px-3 py-1.5 text-sm outline-none focus:border-[#628db6] bg-white"
                         value={editAssignee}
@@ -430,7 +449,7 @@ export default function IssueDetail() {
               </div>
 
               <div>
-                <span className="block text-xs text-gray-400 mb-1">Assignee</span>
+                <span className="block text-xs text-gray-400 mb-1">Assign</span>
                 <select
                   className="w-full border border-[#d7d7d7] rounded px-2 py-1 text-sm outline-none focus:border-[#628db6] bg-white"
                   value={issue.assignee || ''}
@@ -468,6 +487,29 @@ export default function IssueDetail() {
                   </span>
                 </div>
               )}
+
+              <div>
+                <span className="block text-xs text-gray-400 mb-1">Deadline</span>
+                <input
+                  type="date"
+                  className="border border-[#d7d7d7] rounded px-2 py-1 text-sm outline-none focus:border-[#628db6] w-full bg-white"
+                  value={issue.deadline ? issue.deadline.slice(0, 10) : ''}
+                  onChange={async e => {
+                    const val = e.target.value || null
+                    const { error } = await supabase.from('issues').update({ deadline: val }).eq('id', id)
+                    if (error) {
+                      alert('Lỗi lưu deadline: ' + error.message)
+                    } else {
+                      fetchData()
+                    }
+                  }}
+                />
+                {issue.deadline && (
+                  <span className="text-xs text-gray-500 mt-0.5 block">
+                    {new Date(issue.deadline).toLocaleDateString('vi-VN')}
+                  </span>
+                )}
+              </div>
 
               {issue.updated_at && (
                 <div>
