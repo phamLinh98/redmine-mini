@@ -49,8 +49,8 @@ export default function Header() {
       {/* Nav bar */}
       <nav className="bg-[#578bb0] border-b border-[#4a7a9b]">
         <div className="px-6 flex">
-          <NavLink href="/projects" current={pathname === '/projects'}>Home</NavLink>
-          <NavLink href="/projects" current={false}>Projects</NavLink>
+          <NavLink href="/projects" current={pathname === '/projects' || pathname.startsWith('/projects/')}>Home</NavLink>
+          <NavLink href="/my-tasks" current={pathname === '/my-tasks'}>My Tasks</NavLink>
         </div>
       </nav>
     </header>
