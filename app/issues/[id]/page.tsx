@@ -506,7 +506,7 @@ export default function IssueDetail() {
                 />
                 {issue.deadline && (
                   <span className="text-xs text-gray-500 mt-0.5 block">
-                    {new Date(issue.deadline).toLocaleDateString('vi-VN')}
+                    {new Date(issue.deadline + 'T00:00:00').toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                   </span>
                 )}
               </div>
